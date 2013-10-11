@@ -23,20 +23,26 @@ var Watcher = function(elm) {
     self.dest = null
     self.glob = {}
 
+    self.redis = {
+        host : "127.0.0.1",
+        port : 6379,
+        chan : {},
+    }
+
     self.redisRelocateSuccess = function(elm) {
-        c.redis.chan.set(c.namespace + ':' + 'processed', elm.me, function(err,dat) {
+        self.redis.chan.set(c.namespace + ':' + 'processed', elm.me, function(err,dat) {
             console.log(err,dat)
         })
     }
 
     self.redisCheckerFailed = function(elm) {
-        c.redis.chan.set(c.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
+        self.redis.chan.set(c.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
             console.log(err,dat)
         })
     }
 
     self.redisRelocateFailed = function(elm) {
-        c.redis.chan.set(c.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
+        self.redis.chan.set(c.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
             console.log(err,dat)
         })
     }
@@ -157,12 +163,39 @@ var Watcher = function(elm) {
             process.exit(-1)
         }
 
+
+        if(self.dir.redis) {
+            self.redis.host = self.dir.redis.host
+            self.redis.port = self.dir.redis.port
+        } else if(c.redis) {
+            self.redis.host = c.redis.host
+            self.redis.port = c.redis.port
+        } else {
+            console.log("please configure redis")
+            process.exit()
+        }
+
+        try {
+            self.redis.chan = redis.createClient(self.redis.port,self.redis.host)
+        } catch(err) {
+            console.log("redis: error", self.redis.chan)
+            return
+        }
+
         self.initInterval()
+    }
+    self.fini = function() {
+        try {
+            self.redis.chan.end()
+        } catch(err) {
+            console.log("fini: error", err)
+        }
     }
     self.init()
 }
 
 var init = {
+    /*
     redis : function() {
         try {
             c.redis.chan = redis.createClient(c.redis.port,c.redis.host)
@@ -171,6 +204,7 @@ var init = {
             process.exit(-1)
         }
     },
+    */
     watchers : function() {
 
         _.each(c.directories, function(value,key,list) {
@@ -180,7 +214,7 @@ var init = {
 
     },
     everything : function() {
-        init.redis()
+        //init.redis()
         init.watchers()
     },
 }
