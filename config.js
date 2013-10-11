@@ -1,4 +1,5 @@
 module.exports = {
+    namespace : 'relocated',
     redis : {
         host : "127.0.0.1",
         port : 6379,
@@ -22,7 +23,7 @@ module.exports = {
                 '/tmp/movies/*/*.mov',
             ],
             class : 'moviesClass',
-            interval : 1,
+            interval : 2,
         },
     },
     /* global, in case it isn't specified in the watcher */
