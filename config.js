@@ -8,12 +8,12 @@ module.exports = {
         images : {
             glob : [ '/tmp/images/*.jpg' ],
             class : 'imageryClass',
-            check : 'checker',
+            check : '/tmp/bin/checker',
         },
         logs : {
             glob : [ '/tmp/logs/*.log' ],
             class : 'logsClass',
-            check : 'checker',
+            check : '/tmp/bin/checker',
         },
         movies : {
             glob : [
@@ -26,6 +26,6 @@ module.exports = {
     },
     /* global, in case it isn't specified in the watcher */
     interval : 3,
-    check : 'checker',
+    check : '/tmp/bin/checker',
     relocate : 'relocate'
 }
