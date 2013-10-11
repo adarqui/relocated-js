@@ -27,5 +27,5 @@ module.exports = {
     /* global, in case it isn't specified in the watcher */
     interval : 3,
     check : '/tmp/bin/checker',
-    relocate : 'relocate'
+    relocate : '/tmp/bin/relocate'
 }
