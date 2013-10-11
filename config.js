@@ -1,5 +1,9 @@
 module.exports = {
-    interval : 3000,
+    redis : {
+        host : "127.0.0.1",
+        port : 6379,
+        chan : {},
+    },
     directories : {
         images : {
             glob : [ '/tmp/images/*.jpg' ],
@@ -17,8 +21,11 @@ module.exports = {
                 '/tmp/movies/*/*.mov',
             ],
             class : 'moviesClass',
+            interval : 1,
         },
-        check : 'checker',
-        relocate : 'relocate'
-    }
+    },
+    /* global, in case it isn't specified in the watcher */
+    interval : 3,
+    check : 'checker',
+    relocate : 'relocate'
 }
