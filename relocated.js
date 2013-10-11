@@ -3,6 +3,7 @@ var glob = require('glob'),
     resque = require('resque'),
     async = require('async'),
     _ = require('underscore'),
+    resque = require('resque'),
     cproc = require('child_process'),
     fs = require('fs');
 
