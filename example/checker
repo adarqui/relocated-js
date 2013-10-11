@@ -1,0 +1,19 @@
+#!/bin/bash
+
+usage() {
+	echo "usage: checker <file> <class>"
+	exit 1
+}
+
+if [ $# -lt 2 ] ; then
+	usage
+fi
+
+FILE=`redis-cli GET "relocated:processed:$1"`
+if $FILE ; then
+	exit 1
+else 
+	redis-cli SET "relocated:processed:$1"
+fi
+
+exit 0

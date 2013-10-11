@@ -1,0 +1,16 @@
+#!/bin/bash
+
+usage() {
+	echo "usage: checker <file> <class> <dest>"
+	exit 1
+}
+
+if [ $# -lt 3 ] ; then
+	usage
+fi
+
+mkdir -p $3
+
+mv $1 $3
+
+exit 0
