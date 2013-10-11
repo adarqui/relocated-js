@@ -20,12 +20,29 @@ var Watcher = function(elm) {
     self.interval = 1
     self.checker = function() { return null }
     self.relocate = function() { return null }
+    self.dest = null
     self.glob = {}
+
+    self.execRelocate = function(elm) {
+        console.log("EXEC RELOCATE")
+        var code = self.relocate()
+        cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class + ' ' + self.dest, function(err,stdout,stderr) {
+            console.log("relocated",err,stdout,stderr)
+        })
+    }
+
     self.execChecker = function(elm) {
         var code = self.checker()
         console.log("EXEC CHECKER", elm.me,code)
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class, function(err,stdout,stderr) {
-            console.log(err,stdout,stderr)
+            console.log("CHECKER",err,stdout,stderr)
+            if(err.code == 1) {
+                // we need to process this
+                return self.execRelocate(elm)
+            } else {
+                // already processed
+                console.log("ALREADY PROCESSED")
+            }
         })
     }
     self.processGlobFile = function(file) {
@@ -92,8 +109,26 @@ var Watcher = function(elm) {
             self.checker = function() { return c.check }
         }
         else {
-            console.log("error: you must specify a checker")
-            process.exit()
+            console.log("error: you must specify a checker bin")
+            process.exit(-1)
+        }
+
+        if(self.dir.relocate) {
+            self.relocate = function() { return self.dir.relocate }
+        } else if(c.relocate) {
+            self.relocate = function() { return c.relocate }
+        } else {
+            console.log("error: you must specify a relocate bin")
+            process.exit(-1)
+        }
+
+        if(self.dir.dest) {
+            self.dest = self.dir.dest
+        } else if(c.dest) {
+            self.dest = c.dest
+        } else {
+            console.log("error: you must specify a destination path")
+            process.exit(-1)
         }
 
         self.initInterval()
