@@ -3,6 +3,7 @@ var glob = require('glob'),
     resque = require('resque'),
     async = require('async'),
     _ = require('underscore'),
+    cproc = require('child_process'),
     fs = require('fs');
 
 var c
@@ -20,9 +21,12 @@ var Watcher = function(elm) {
     self.checker = function() { return null }
     self.relocate = function() { return null }
     self.glob = {}
-    self.execChecker = function() {
+    self.execChecker = function(elm) {
         var code = self.checker()
-        console.log(code)
+        console.log("EXEC CHECKER", elm.me,code)
+        cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class, function(err,stdout,stderr) {
+            console.log(err,stdout,stderr)
+        })
     }
     self.processGlobFile = function(file) {
         var elm
@@ -39,10 +43,13 @@ var Watcher = function(elm) {
                 // file is still the same, it must be "done"
                 console.log("the file", file)
                 elm.done = true
+
+                return self.execChecker(elm)
             }
         }
         else {
             self.glob[file] = fs.statSync(file)
+            self.glob[file].me = file
         }
 //        console.log(self.glob[file], st)
     }
@@ -79,10 +86,14 @@ var Watcher = function(elm) {
             self.interval = c.interval
         }
 
-        if(self.dir.checker) {
-            self.checker = function() { return self.dir.checker }
-        } else if(c.checker) {
-            self.checker = function() { return c.checker }
+        if(self.dir.check) {
+            self.checker = function() { return self.dir.check }
+        } else if(c.check) {
+            self.checker = function() { return c.check }
+        }
+        else {
+            console.log("error: you must specify a checker")
+            process.exit()
         }
 
         self.initInterval()
