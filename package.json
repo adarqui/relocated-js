@@ -21,6 +21,8 @@
         "glob" : "~3.2.6",
         "redis" : "~0.8.6",
         "hiredis" : "*",
-        "resque" : "~0.0.3"
+        "resque" : "~0.0.3",
+        "underscore" : "~1.5.2",
+        "async" : "~0.2.9"
     }
 }
