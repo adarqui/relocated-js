@@ -1,0 +1,25 @@
+{
+    "name" : "relocated",
+    "description" : "A little daemon to relocate files once they are done uploading",
+    "version" : "0.0.1",
+    "author" : "Andrew Darqui <andrew.darqui@gmail.com>",
+    "contributors" : [ {
+        "name": "adarqui",
+        "email": "andrew.darqui@gmail.com"
+    } ],
+    "repository" : {
+        "type" : "git",
+        "url" : "http://github.com/adarqui/relocated"
+    },
+    "bugs" : {
+        "url" : "http://github.com/adarqui/relocated/issues"
+    },
+    "licenses" : [ {
+        "type" : "GPL"
+    } ],
+    "dependencies": {
+        "glob" : "~3.2.6",
+        "redis" : "~0.8.6",
+        "hiredis" : "*"
+    }
+}
