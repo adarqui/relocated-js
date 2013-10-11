@@ -11,11 +11,21 @@ module.exports = {
             class : 'imageryClass',
             check : '/tmp/bin/checker',
             dest : '/tmp/images_processed/',
+            redis : {
+                host : "127.0.0.1",
+                port : 6379,
+                chan : {}
+            }
         },
         logs : {
             glob : [ '/tmp/logs/*.log' ],
             class : 'logsClass',
             check : '/tmp/bin/checker',
+            redis : {
+                host : "127.0.0.1",
+                port : 6379,
+                chan : {},
+            },
         },
         movies : {
             glob : [
