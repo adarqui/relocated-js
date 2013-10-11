@@ -23,11 +23,36 @@ var Watcher = function(elm) {
     self.dest = null
     self.glob = {}
 
+    self.redisRelocateSuccess = function(elm) {
+        c.redis.chan.set(c.namespace + ':' + 'processed', elm.me, function(err,dat) {
+            console.log(err,dat)
+        })
+    }
+
+    self.redisCheckerFailed = function(elm) {
+        c.redis.chan.set(c.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
+            console.log(err,dat)
+        })
+    }
+
+    self.redisRelocateFailed = function(elm) {
+        c.redis.chan.set(c.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
+            console.log(err,dat)
+        })
+    }
+
     self.execRelocate = function(elm) {
         console.log("EXEC RELOCATE")
         var code = self.relocate()
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class + ' ' + self.dest, function(err,stdout,stderr) {
             console.log("relocated",err,stdout,stderr)
+            if(err && err.code == 1) {
+                // relocate failure
+                self.redisRelocateFailed(elm)
+            } else {
+                // relocate success
+                self.redisRelocateSuccess(elm)
+            }
         })
     }
 
@@ -36,12 +61,13 @@ var Watcher = function(elm) {
         console.log("EXEC CHECKER", elm.me,code)
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class, function(err,stdout,stderr) {
             console.log("CHECKER",err,stdout,stderr)
-            if(err.code == 1) {
+            if(err && err.code == 1) {
                 // we need to process this
                 return self.execRelocate(elm)
             } else {
                 // already processed
                 console.log("ALREADY PROCESSED")
+                return self.redisCheckerFailed(elm)
             }
         })
     }
@@ -63,6 +89,8 @@ var Watcher = function(elm) {
 
                 return self.execChecker(elm)
             }
+
+            elm.size = st.size
         }
         else {
             self.glob[file] = fs.statSync(file)
@@ -90,13 +118,11 @@ var Watcher = function(elm) {
     }
     self.initInterval = function() {
         setInterval(function() {
-            console.log("hi")
             self.initGlob()
         }, self.interval*1000)
     }
     self.init = function() {
-//        console.log(elm.value)
-//        self.initGlob()
+
         if(self.dir.interval) {
             self.interval = self.dir.interval
         } else if(c.interval) {
@@ -136,7 +162,28 @@ var Watcher = function(elm) {
     self.init()
 }
 
-_.each(c.directories, function(value,key,list) {
-//    console.log(value,key,key[value],list)
-    var watcher = new Watcher({ key: key, value: value })
-})
+var init = {
+    redis : function() {
+        try {
+            c.redis.chan = redis.createClient(c.redis.port,c.redis.host)
+        } catch(err) {
+            console.log("redis: error", c.redis.chan)
+            process.exit(-1)
+        }
+    },
+    watchers : function() {
+
+        _.each(c.directories, function(value,key,list) {
+            //    console.log(value,key,key[value],list)
+            var watcher = new Watcher({ key: key, value: value })
+        })
+
+    },
+    everything : function() {
+        init.redis()
+        init.watchers()
+    },
+}
+
+
+init.everything()
