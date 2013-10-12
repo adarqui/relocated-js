@@ -28,6 +28,7 @@ else {
 
 var Watcher = function(elm) {
     var self = this
+    self.key = elm.key
     self.dir = elm.value
     self.interval = 1
     self.checker = function() { return null }
@@ -35,6 +36,7 @@ var Watcher = function(elm) {
     self.dest = null
     self.glob = {}
     self.namespace = "relocated"
+    self.resque = {}
 
     self.redis = {
         host : "127.0.0.1",
@@ -74,13 +76,25 @@ var Watcher = function(elm) {
 
     self.execRelocate = function(elm,cb) {
         var code = self.relocate()
-        cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class + ' ' + self.dest, function(err,stdout,stderr) {
+        cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class + ' ' + self.dest + ' ' + self.key, function(err,stdout,stderr) {
             if(err && err.code == 1) {
                 // relocate failure
                 self.redisRelocateFailed(elm,cb)
             } else {
                 // relocate success
-                self.redisRelocateSuccess(elm,cb)
+                var js = null
+                if(typeof stdout === 'string') {
+                    js = JSON.parse(stdout)
+
+                }
+
+                try {
+                    self.resque.enqueue('relocated',self.class,js)
+                } catch(err) {
+                    /* why does resque not supply a callback? */
+                    winston.error('Resque: '+self.me+' failed')
+                }
+                    self.redisRelocateSuccess(elm,cb)
             }
         })
     }
@@ -208,6 +222,8 @@ var Watcher = function(elm) {
             winston.error('Init: '+elm.key+' redis -> unable to connect')
             return
         }
+
+        self.resque = resque.connect({ redis : self.redis.chan })
 
         self.redis.chan.on('error', function(err) {
             winston.error('Redis: '+elm.key+' disconnected')

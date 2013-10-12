@@ -1,16 +1,20 @@
 #!/bin/bash
 
 usage() {
-	echo "usage: checker <file> <class> <dest>"
+	echo "usage: checker <file> <class> <dest> <type>"
 	exit 1
 }
 
-if [ $# -lt 3 ] ; then
+if [ $# -lt 4 ] ; then
 	usage
 fi
 
 mkdir -p $3
 
 mv $1 $3
+
+BASENAME=`basename $1`
+
+echo "{ \"file\" : \"${BASENAME}\" , \"type\" : \"$4\" }"
 
 exit 0
