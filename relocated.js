@@ -4,6 +4,7 @@ var glob = require('glob'),
     async = require('async'),
     _ = require('underscore'),
     resque = require('resque'),
+    winston = require('winston'),
     cproc = require('child_process'),
     fs = require('fs');
 
@@ -230,6 +231,37 @@ var init = {
         }
     },
     */
+    winston : function() {
+        c.winston = {
+            levels : {
+                silly : 0,
+                verbose : 1,
+                info : 2,
+                data : 3,
+                warn : 4,
+                debug : 5,
+                error : 6
+            },
+            colors : {
+                silly : 'magenta',
+                verbose : 'cyan',
+                info : 'green',
+                data : 'grey',
+                warn : 'yellow',
+                debug : 'blue',
+                error : 'red',
+            }
+        }
+        winston = new (winston.Logger)({
+            transports : [
+                new (winston.transports.Console)({
+                    colorize : true,
+                })
+            ],
+            levels : c.winston.levels,
+            colors : c.winston.colors
+        })
+    },
     sanitizePathsElm : function(elm) {
         if(elm.dest) {
             elm.dest = misc.returnFullPath(elm.dest)
@@ -265,7 +297,10 @@ var init = {
     },
     everything : function() {
         //init.redis()
+        init.winston()
+        winston.info('Initializing paths')
         init.sanitizePaths()
+        winston.info('Initializing watchers')
         init.watchers()
     },
 }
