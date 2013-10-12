@@ -4,6 +4,14 @@ touch_file() {
   touch "${TMPDIR}"/$1/$2
 }
 
+loop_it() {
+  i=0
+  while [ ${i} -lt $1 ] ; do
+    echo "hello" >> "${TMPDIR}"/$2/$3
+    sleep 1
+    i=$((i+1))
+  done
+}
 
 usage() {
   echo "Make sure relocated is running: node relocated.js"
@@ -19,4 +27,13 @@ echo "Running a little test"
 TMPDIR="tmp_relocated"
 mkdir -p "${TMPDIR}" "${TMPDIR}"/images "${TMPDIR}"/logs "${TMPDIR}"/movies "${TMPDIR}"/misc "${TMPDIR}"/images/processed_images
 
-while true ; do (sleep 1; touch_file images $RANDOM.jpg) ; done &
+while true ; do (sleep 4; touch_file images $RANDOM.jpg) ; done &
+
+(while true ; do
+  loop_it 10 movies $RANDOM.mov
+done
+) &
+
+(while true ; do
+loop_it 12 logs $RANDOM.log
+done) &

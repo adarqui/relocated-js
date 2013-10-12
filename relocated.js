@@ -42,59 +42,62 @@ var Watcher = function(elm) {
         chan : {},
     }
 
-    self.redisRelocateSuccess = function(elm) {
+    self.redisRelocateSuccess = function(elm,cb) {
         winston.info('Relocate: '+elm.me+' success -> relocated')
         self.redis.chan.set(self.namespace + ':' + 'processed', elm.me, function(err,dat) {
             if(err) {
                 winston.error('Relocate: '+elm.me+' success -> redis failed')
             }
+            return cb()
         })
     }
 
-    self.redisCheckerFailed = function(elm) {
+    self.redisCheckerFailed = function(elm,cb) {
         winston.error('Checker: '+elm.me+' failed')
         self.redis.chan.set(self.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
             if(err) {
                 winston.error('Checker: '+elm.me+' failed -> redis')
             }
+            return cb()
         })
     }
 
-    self.redisRelocateFailed = function(elm) {
+    self.redisRelocateFailed = function(elm,cb) {
         winston.error('Relocate: '+elm.me+' failed')
         self.redis.chan.set(self.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
             if(err) {
                 winston.error('Relocate: '+elm.me+' failed -> redis')
             }
+            return cb()
         })
     }
 
-    self.execRelocate = function(elm) {
+    self.execRelocate = function(elm,cb) {
         var code = self.relocate()
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class + ' ' + self.dest, function(err,stdout,stderr) {
             if(err && err.code == 1) {
                 // relocate failure
-                self.redisRelocateFailed(elm)
+                self.redisRelocateFailed(elm,cb)
             } else {
                 // relocate success
-                self.redisRelocateSuccess(elm)
+                self.redisRelocateSuccess(elm,cb)
             }
         })
     }
 
-    self.execChecker = function(elm) {
+    self.execChecker = function(elm,cb) {
         var code = self.checker()
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class, function(err,stdout,stderr) {
             if(err && err.code == 1) {
                 // we need to process this
-                return self.execRelocate(elm)
+                return self.execRelocate(elm,cb)
             } else {
                 // already processed
-                return self.redisCheckerFailed(elm)
+                return self.redisCheckerFailed(elm,cb)
             }
         })
     }
-    self.processGlobFile = function(file) {
+    self.processGlobFile = function(file,cb) {
         var elm
         var st
 
@@ -102,13 +105,13 @@ var Watcher = function(elm) {
 
         if(elm) {
 
-            if(elm.done) return
+            if(elm.done) return cb();
 
             st = fs.statSync(file)
             if(elm.size == st.size) {
                 // file is still the same, it must be "done"
                 elm.done = true
-                return self.execChecker(elm)
+                return self.execChecker(elm,cb)
             }
 
             elm.size = st.size
@@ -117,20 +120,23 @@ var Watcher = function(elm) {
             self.glob[file] = fs.statSync(file)
             self.glob[file].me = file
         }
+        return cb()
     }
     self.initGlob = function() {
-        async.eachSeries(self.dir.glob, function(dir) {
+        async.eachSeries(self.dir.glob, function(dir,cb) {
             glob(dir, {}, function(err,files) {
                 if(err) return
                 _.each(files, function(value,key,list) {
                     if(!self.glob[key]) {
-                        self.processGlobFile(value)
+                        self.processGlobFile(value,cb)
                     }
+                    else return cb()
                 })
             })
         }, function(err,data) {
-            console.log("err",err,"data",data)
-            process.exit()
+            if(err) {
+                winston.error('initGlob: '+elm.key+' error', { error : err })
+            }
         })
     }
     self.initInterval = function() {
@@ -197,13 +203,15 @@ var Watcher = function(elm) {
 
         try {
             self.redis.chan = redis.createClient(self.redis.port,self.redis.host)
+            winston.info('Init: '+elm.key+' redis -> successfully connected')
         } catch(err) {
-            winston.error('Init: '+elm.key+' redis -> unable to connect', self.redis.chan)
+            winston.error('Init: '+elm.key+' redis -> unable to connect')
             return
         }
 
         self.redis.chan.on('error', function(err) {
             winston.error('Redis: '+elm.key+' disconnected')
+            return
         })
 
         self.initInterval()

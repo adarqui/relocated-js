@@ -27,6 +27,7 @@ module.exports = {
                 port : 6379,
                 chan : {},
             },
+            interval : 4
         },
         movies : {
             glob : [
@@ -42,7 +43,7 @@ module.exports = {
         },
     },
     /* global, in case it isn't specified in the watcher */
-    interval : 3,
+    interval : 6,
     check : 'example/checker',
     relocate : 'example/relocate',
     dest : '/tmp/misc/',
