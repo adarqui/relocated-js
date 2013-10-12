@@ -23,6 +23,7 @@ var Watcher = function(elm) {
     self.relocate = function() { return null }
     self.dest = null
     self.glob = {}
+    self.namespace = "relocated"
 
     self.redis = {
         host : "127.0.0.1",
@@ -31,19 +32,19 @@ var Watcher = function(elm) {
     }
 
     self.redisRelocateSuccess = function(elm) {
-        self.redis.chan.set(c.namespace + ':' + 'processed', elm.me, function(err,dat) {
+        self.redis.chan.set(self.namespace + ':' + 'processed', elm.me, function(err,dat) {
             console.log(err,dat)
         })
     }
 
     self.redisCheckerFailed = function(elm) {
-        self.redis.chan.set(c.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
+        self.redis.chan.set(self.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
             console.log(err,dat)
         })
     }
 
     self.redisRelocateFailed = function(elm) {
-        self.redis.chan.set(c.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
+        self.redis.chan.set(self.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
             console.log(err,dat)
         })
     }
@@ -121,6 +122,7 @@ var Watcher = function(elm) {
             })
         }, function(err,data) {
             console.log("err",err,"data",data)
+            process.exit()
         })
     }
     self.initInterval = function() {
@@ -129,6 +131,15 @@ var Watcher = function(elm) {
         }, self.interval*1000)
     }
     self.init = function() {
+
+        if(self.dir.namespace) {
+            self.namespace = self.dir.namespace
+        } else if(c.namespace) {
+            self.namespace = c.namespace
+        } else {
+            console.log("error: please define a namespace")
+            process.exit(-1)
+        }
 
         if(self.dir.interval) {
             self.interval = self.dir.interval
