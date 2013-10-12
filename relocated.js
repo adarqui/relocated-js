@@ -44,7 +44,7 @@ var Watcher = function(elm) {
 
     self.redisRelocateSuccess = function(elm,cb) {
         winston.info('Relocate: '+elm.me+' success -> relocated')
-        self.redis.chan.set(self.namespace + ':' + 'processed', elm.me, function(err,dat) {
+        self.redis.chan.sadd(self.namespace + ':' + 'processed', elm.me, function(err,dat) {
             if(err) {
                 winston.error('Relocate: '+elm.me+' success -> redis failed')
             }
@@ -54,7 +54,7 @@ var Watcher = function(elm) {
 
     self.redisCheckerFailed = function(elm,cb) {
         winston.error('Checker: '+elm.me+' failed')
-        self.redis.chan.set(self.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
+        self.redis.chan.sadd(self.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
             if(err) {
                 winston.error('Checker: '+elm.me+' failed -> redis')
             }
@@ -64,7 +64,7 @@ var Watcher = function(elm) {
 
     self.redisRelocateFailed = function(elm,cb) {
         winston.error('Relocate: '+elm.me+' failed')
-        self.redis.chan.set(self.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
+        self.redis.chan.sadd(self.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
             if(err) {
                 winston.error('Relocate: '+elm.me+' failed -> redis')
             }
