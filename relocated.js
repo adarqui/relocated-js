@@ -206,6 +206,19 @@ var Watcher = function(elm) {
     self.init()
 }
 
+
+var misc = {
+    returnFullPath : function(s) {
+        if(!s) return s
+        if(s[0] != '/') {
+            return __dirname + '/' + s
+        }
+        else {
+            return s
+        }
+    }
+}
+
 var init = {
     /*
     redis : function() {
@@ -217,6 +230,31 @@ var init = {
         }
     },
     */
+    sanitizePathsElm : function(elm) {
+        if(elm.dest) {
+            elm.dest = misc.returnFullPath(elm.dest)
+        }
+        if(elm.check) {
+            elm.check = misc.returnFullPath(elm.check)
+        }
+        if(elm.relocate) {
+            elm.relocate = misc.returnFullPath(elm.relocate)
+        }
+        for(var v in elm.glob) {
+            elm.glob[v] = misc.returnFullPath(elm.glob[v])
+        }
+    },
+    sanitizePaths : function() {
+        _.each(c.directories, function(value,key,list) {
+            var elm = value
+            init.sanitizePathsElm(elm)
+        })
+        init.sanitizePathsElm(c)
+        /*
+        console.log(JSON.stringify(c,null,4))
+        process.exit()
+        */
+    },
     watchers : function() {
 
         _.each(c.directories, function(value,key,list) {
@@ -227,6 +265,7 @@ var init = {
     },
     everything : function() {
         //init.redis()
+        init.sanitizePaths()
         init.watchers()
     },
 }
