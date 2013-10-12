@@ -1,3 +1,12 @@
+/*
+ * relocated - a file relocation daemon
+ *
+ *  Uses: processing files after they are done uploaded to a box by a third party
+ *
+ * -- adarqui
+ *
+ *  ps: it doesn't use watchFile()/inotify() on purpose.
+ */
 var glob = require('glob'),
     redis = require('redis'),
     resque = require('resque'),
@@ -8,7 +17,8 @@ var glob = require('glob'),
     cproc = require('child_process'),
     fs = require('fs');
 
-var c
+var c;
+
 if(process.env['CONFIG']) {
     c = require(process.env['CONFIG'])
 }
@@ -105,18 +115,13 @@ var Watcher = function(elm) {
             self.glob[file] = fs.statSync(file)
             self.glob[file].me = file
         }
-//        console.log(self.glob[file], st)
     }
     self.initGlob = function() {
         async.eachSeries(self.dir.glob, function(dir) {
             glob(dir, {}, function(err,files) {
-//                console.log(err,files)
                 if(err) return
                 _.each(files, function(value,key,list) {
                     if(!self.glob[key]) {
-//                        console.log(value,key)
-                        //glob[value] = {
-                        //}
                         self.processGlobFile(value)
                     }
                 })
