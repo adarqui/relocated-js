@@ -7,10 +7,11 @@ module.exports = {
     },
     directories : {
         images : {
-            glob : [ '/tmp/images/*.jpg' ],
+            namespace : 'relocated_images',
+            glob : [ 'tmp_relocated/images/*.jpg' ],
             class : 'imageryClass',
-            check : '/tmp/bin/checker',
-            dest : '/tmp/images_processed/',
+            check : 'example/checker',
+            dest : 'tmp_relocated/images_processed/',
             redis : {
                 host : "127.0.0.1",
                 port : 6379,
@@ -18,9 +19,9 @@ module.exports = {
             }
         },
         logs : {
-            glob : [ '/tmp/logs/*.log' ],
+            glob : [ 'tmp_relocated/logs/*.log' ],
             class : 'logsClass',
-            check : '/tmp/bin/checker',
+            check : 'example/checker',
             redis : {
                 host : "127.0.0.1",
                 port : 6379,
@@ -29,16 +30,20 @@ module.exports = {
         },
         movies : {
             glob : [
-                '/tmp/movies/*.mov',
-                '/tmp/movies/*/*.mov',
+                'tmp_relocated/movies/*.mov',
+                'tmp_relocated/movies/*/*.mov',
             ],
             class : 'moviesClass',
             interval : 2,
+            auth : {
+                user : "admin",
+                pass : "admin",
+            }
         },
     },
     /* global, in case it isn't specified in the watcher */
     interval : 3,
-    check : '/tmp/bin/checker',
-    relocate : '/tmp/bin/relocate',
+    check : 'example/checker',
+    relocate : 'example/relocate',
     dest : '/tmp/misc/',
 }
