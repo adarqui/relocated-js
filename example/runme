@@ -1,5 +1,22 @@
 #!/bin/bash
 
+touch_file() {
+  touch "${TMPDIR}"/$1/$2
+}
+
+
+usage() {
+  echo "Make sure relocated is running: node relocated.js"
+  exit 1
+}
+
+if ! pgrep -f relocated ; then
+  usage
+fi
+
 echo "Running a little test"
 
+TMPDIR="tmp_relocated"
+mkdir -p "${TMPDIR}" "${TMPDIR}"/images "${TMPDIR}"/logs "${TMPDIR}"/movies "${TMPDIR}"/misc "${TMPDIR}"/images/processed_images
 
+while true ; do (sleep 1; touch_file images $RANDOM.jpg) ; done &
