@@ -43,28 +43,35 @@ var Watcher = function(elm) {
     }
 
     self.redisRelocateSuccess = function(elm) {
+        winston.info('Relocate: '+elm.me+' success -> relocated')
         self.redis.chan.set(self.namespace + ':' + 'processed', elm.me, function(err,dat) {
-            console.log(err,dat)
+            if(err) {
+                winston.error('Relocate: '+elm.me+' success -> redis failed')
+            }
         })
     }
 
     self.redisCheckerFailed = function(elm) {
+        winston.error('Checker: '+elm.me+' failed')
         self.redis.chan.set(self.namespace + ':' + 'checker:failed', elm.me, function(err,dat) {
-            console.log(err,dat)
+            if(err) {
+                winston.error('Checker: '+elm.me+' failed -> redis')
+            }
         })
     }
 
     self.redisRelocateFailed = function(elm) {
+        winston.error('Relocate: '+elm.me+' failed')
         self.redis.chan.set(self.namespace + ':' + 'relocate:failed', elm.me, function(err,dat) {
-            console.log(err,dat)
+            if(err) {
+                winston.error('Relocate: '+elm.me+' failed -> redis')
+            }
         })
     }
 
     self.execRelocate = function(elm) {
-        console.log("EXEC RELOCATE")
         var code = self.relocate()
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class + ' ' + self.dest, function(err,stdout,stderr) {
-            console.log("relocated",err,stdout,stderr)
             if(err && err.code == 1) {
                 // relocate failure
                 self.redisRelocateFailed(elm)
@@ -77,15 +84,12 @@ var Watcher = function(elm) {
 
     self.execChecker = function(elm) {
         var code = self.checker()
-        console.log("EXEC CHECKER", elm.me,code)
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class, function(err,stdout,stderr) {
-            console.log("CHECKER",err,stdout,stderr)
             if(err && err.code == 1) {
                 // we need to process this
                 return self.execRelocate(elm)
             } else {
                 // already processed
-                console.log("ALREADY PROCESSED")
                 return self.redisCheckerFailed(elm)
             }
         })
@@ -103,9 +107,7 @@ var Watcher = function(elm) {
             st = fs.statSync(file)
             if(elm.size == st.size) {
                 // file is still the same, it must be "done"
-                console.log("the file", file)
                 elm.done = true
-
                 return self.execChecker(elm)
             }
 
@@ -143,7 +145,7 @@ var Watcher = function(elm) {
         } else if(c.namespace) {
             self.namespace = c.namespace
         } else {
-            console.log("error: please define a namespace")
+            winston.error('Init: '+elm.key+' namespace -> undefined')
             process.exit(-1)
         }
 
@@ -159,7 +161,7 @@ var Watcher = function(elm) {
             self.checker = function() { return c.check }
         }
         else {
-            console.log("error: you must specify a checker bin")
+            winston.error('Init: '+elm.key+' checker -> unspecified')
             process.exit(-1)
         }
 
@@ -168,7 +170,7 @@ var Watcher = function(elm) {
         } else if(c.relocate) {
             self.relocate = function() { return c.relocate }
         } else {
-            console.log("error: you must specify a relocate bin")
+            winston.error('Init: '+elm.key+' relocate -> unspecified')
             process.exit(-1)
         }
 
@@ -177,7 +179,7 @@ var Watcher = function(elm) {
         } else if(c.dest) {
             self.dest = c.dest
         } else {
-            console.log("error: you must specify a destination path")
+            winston.error('Init: '+elm.key+' destination -> unspecified')
             process.exit(-1)
         }
 
@@ -189,16 +191,20 @@ var Watcher = function(elm) {
             self.redis.host = c.redis.host
             self.redis.port = c.redis.port
         } else {
-            console.log("please configure redis")
+            winston.error('Init: '+elm.key+' redis -> unspecified')
             process.exit()
         }
 
         try {
             self.redis.chan = redis.createClient(self.redis.port,self.redis.host)
         } catch(err) {
-            console.log("redis: error", self.redis.chan)
+            winston.error('Init: '+elm.key+' redis -> unable to connect', self.redis.chan)
             return
         }
+
+        self.redis.chan.on('error', function(err) {
+            winston.error('Redis: '+elm.key+' disconnected')
+        })
 
         self.initInterval()
     }
@@ -206,7 +212,7 @@ var Watcher = function(elm) {
         try {
             self.redis.chan.end()
         } catch(err) {
-            console.log("fini: error", err)
+            winston.error('Fini: '+elm.key+' error -> closing redis socket', err)
         }
     }
     self.init()
@@ -226,16 +232,6 @@ var misc = {
 }
 
 var init = {
-    /*
-    redis : function() {
-        try {
-            c.redis.chan = redis.createClient(c.redis.port,c.redis.host)
-        } catch(err) {
-            console.log("redis: error", c.redis.chan)
-            process.exit(-1)
-        }
-    },
-    */
     winston : function() {
         c.winston = {
             levels : {
@@ -293,15 +289,12 @@ var init = {
         */
     },
     watchers : function() {
-
         _.each(c.directories, function(value,key,list) {
             //    console.log(value,key,key[value],list)
             var watcher = new Watcher({ key: key, value: value })
         })
-
     },
     everything : function() {
-        //init.redis()
         init.winston()
         winston.info('Initializing paths')
         init.sanitizePaths()
