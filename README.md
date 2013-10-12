@@ -2,7 +2,7 @@ Watches directories based on 'glob' syntax. New files get monitored. Once they h
 
 quick example howto:
 
-node relocated.js
+		node relocated.js
 
 Then:
 
