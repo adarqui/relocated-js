@@ -25,6 +25,7 @@ var Watcher = function(elm) {
     self.key = elm.key
     self.dir = elm.value
     self.interval = 1
+    self.maxproc = 0
     self.checker = function() { return null }
     self.relocate = function() { return null }
     self.dest = null
@@ -32,6 +33,7 @@ var Watcher = function(elm) {
     self.namespace = "relocated"
     self.resque = {}
     self.ev = {}
+    self.execQueue = []
 
     self.redis = {
         host : "127.0.0.1",
@@ -67,12 +69,12 @@ var Watcher = function(elm) {
         })
     }
 
-    self.execRelocate = function(elm,cb) {
+    self.execRelocate = function(elm) {
         var code = self.relocate()
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class + ' ' + self.dest + ' ' + self.key, function(err,stdout,stderr) {
             if(err && err.code == 1) {
                 // relocate failure
-                self.redisRelocateFailed(elm,cb)
+                self.redisRelocateFailed(elm, self.processExecQueue)
             } else {
                 // relocate success
                 var js = null
@@ -87,7 +89,7 @@ var Watcher = function(elm) {
                     /* why does resque not supply a callback? */
                     winston.error('Resque: '+self.me+' failed')
                 }
-                self.redisRelocateSuccess(elm,cb)
+                self.redisRelocateSuccess(elm,self.processExecQueue)
             }
         })
     }
@@ -206,9 +208,24 @@ var Watcher = function(elm) {
             self.initGlob()
         }, self.interval*1000)
     }
+    self.processExecQueue = function() {
+        if(self.execQueue.length > 0) {
+            var elm = self.execQueue.pop()
+            self.execRelocate(elm)
+        }
+    },
+    self.pushExecQueue = function(elm) {
+        self.execQueue.push(elm)
+    }
     self.initEventHooks = function() {
         self.ev.on('exec', function(data) {
-            console.log("exec data", data)
+            self.pushExecQueue(data.element)
+            if(self.execQueue.length > self.maxprocs) {
+                /* too many processes currently running... return */
+                return
+            }
+
+            self.processExecQueue()
         })
     }
     self.init = function() {
@@ -229,6 +246,15 @@ var Watcher = function(elm) {
             self.interval = self.dir.interval
         } else if(c.interval) {
             self.interval = c.interval
+        }
+
+        if(self.dir.maxproc) {
+            self.maxproc = self.dir.maxproc
+        } else if(c.maxproc) {
+            self.maxproc = c.maxproc
+        } else {
+            winston.error('Init: '+elm.key+' maxproc -> unspecified')
+            process.exit()
         }
 
         if(self.dir.check) {
