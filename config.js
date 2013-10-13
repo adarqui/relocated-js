@@ -27,15 +27,15 @@ module.exports = {
                 port : 6379,
                 chan : {},
             },
-            interval : 4
         },
         movies : {
             glob : [
                 'tmp_relocated/movies/*.mov',
                 'tmp_relocated/movies/*/*.mov',
+		'tmp_relocated/movies/rand/*',
             ],
             class : 'moviesClass',
-            interval : 2,
+            interval : 30,
             auth : {
                 user : "admin",
                 pass : "admin",
@@ -43,7 +43,8 @@ module.exports = {
         },
     },
     /* global, in case it isn't specified in the watcher */
-    interval : 6,
+    interval : 10,
+    maxproc : 10,
     check : 'example/checker',
     relocate : 'example/relocate',
     dest : '/tmp/misc/',
