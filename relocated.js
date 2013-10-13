@@ -31,6 +31,7 @@ var Watcher = function(elm) {
     self.glob = {}
     self.namespace = "relocated"
     self.resque = {}
+    self.ev = {}
 
     self.redis = {
         host : "127.0.0.1",
@@ -125,10 +126,10 @@ var Watcher = function(elm) {
             elm.size = st.size
             return cb()
             */
-
            fs.stat(file, function(err,data) {
                if(elm.size == data.size) {
                    elm.done = true
+                   self.ev.emit('exec', { element : elm })
                    return cb()
 //                   return self.execChecker(elm,cb)
                }
@@ -193,12 +194,7 @@ var Watcher = function(elm) {
                   })
                   */
                  async.setImmediate(function() {
-                     if(!self.glob[file]) {
-                         return self.processGlobFile(file,_cb);
-                     }
-                     else {
-                        return _cb()
-                     }
+                    return self.processGlobFile(file,_cb);
                  })
 //                  process.nextTick(_cb)
               })
@@ -210,7 +206,15 @@ var Watcher = function(elm) {
             self.initGlob()
         }, self.interval*1000)
     }
+    self.initEventHooks = function() {
+        self.ev.on('exec', function(data) {
+            console.log("exec data", data)
+        })
+    }
     self.init = function() {
+
+        self.ev = new events.EventEmitter()
+        self.initEventHooks()
 
         if(self.dir.namespace) {
             self.namespace = self.dir.namespace
@@ -371,6 +375,7 @@ var init = {
         })
     },
     eventEmitter : function() {
+        /* global event emitter, may not need this */
         c.ev = new events.EventEmitter()
     },
     config : function() {
