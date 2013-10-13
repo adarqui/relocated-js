@@ -15,17 +15,10 @@ var glob = require('glob'),
     resque = require('resque'),
     winston = require('winston'),
     cproc = require('child_process'),
-    event = require('events'),
+    events = require('events'),
     fs = require('fs');
 
 var c;
-
-if(process.env['CONFIG']) {
-    c = require(process.env['CONFIG'])
-}
-else {
-    c = require('./config.js')
-}
 
 var Watcher = function(elm) {
     var self = this
@@ -100,7 +93,6 @@ var Watcher = function(elm) {
 
     self.execChecker = function(elm,cb) {
         var code = self.checker()
-        console.log("CHECKER!", code)
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class, function(err,stdout,stderr) {
             if(err && err.code == 1) {
                 // we need to process this
@@ -117,8 +109,6 @@ var Watcher = function(elm) {
         var st
 
         elm = self.glob[file]
-
-console.log(file)
 
         if(elm) {
 
@@ -139,8 +129,6 @@ console.log(file)
            fs.stat(file, function(err,data) {
                if(elm.size == data.size) {
                    elm.done = true
-                   console.log("CHECKER")
-
                    return cb()
 //                   return self.execChecker(elm,cb)
                }
@@ -205,7 +193,6 @@ console.log(file)
                   })
                   */
                  async.setImmediate(function() {
-                     console.log("file", file)
                      if(!self.glob[file]) {
                          return self.processGlobFile(file,_cb);
                      }
@@ -383,8 +370,20 @@ var init = {
             var watcher = new Watcher({ key: key, value: value })
         })
     },
+    eventEmitter : function() {
+        c.ev = new events.EventEmitter()
+    },
+    config : function() {
+        if(process.env['CONFIG']) {
+            c = require(process.env['CONFIG'])
+        } else {
+            c = require('./config.js')
+        }
+    },
     everything : function() {
+        init.config()
         init.winston()
+        init.eventEmitter()
         winston.info('Initializing paths')
         init.sanitizePaths()
         winston.info('Initializing watchers')
