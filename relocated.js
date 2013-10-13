@@ -15,6 +15,7 @@ var glob = require('glob'),
     resque = require('resque'),
     winston = require('winston'),
     cproc = require('child_process'),
+    event = require('events'),
     fs = require('fs');
 
 var c;
@@ -60,7 +61,6 @@ var Watcher = function(elm) {
             if(err) {
                 winston.error('Checker: '+elm.me+' failed -> redis')
             }
-            return cb()
         })
     }
 
@@ -70,7 +70,6 @@ var Watcher = function(elm) {
             if(err) {
                 winston.error('Relocate: '+elm.me+' failed -> redis')
             }
-            return cb()
         })
     }
 
@@ -94,13 +93,14 @@ var Watcher = function(elm) {
                     /* why does resque not supply a callback? */
                     winston.error('Resque: '+self.me+' failed')
                 }
-                    self.redisRelocateSuccess(elm,cb)
+                self.redisRelocateSuccess(elm,cb)
             }
         })
     }
 
     self.execChecker = function(elm,cb) {
         var code = self.checker()
+        console.log("CHECKER!", code)
         cproc.exec(code + ' ' + elm.me + ' ' + self.dir.class, function(err,stdout,stderr) {
             if(err && err.code == 1) {
                 // we need to process this
@@ -111,16 +111,20 @@ var Watcher = function(elm) {
             }
         })
     }
+
     self.processGlobFile = function(file,cb) {
         var elm
         var st
 
         elm = self.glob[file]
 
+console.log(file)
+
         if(elm) {
 
             if(elm.done) return cb();
 
+            /*
             st = fs.statSync(file)
             if(elm.size == st.size) {
                 // file is still the same, it must be "done"
@@ -129,29 +133,90 @@ var Watcher = function(elm) {
             }
 
             elm.size = st.size
+            return cb()
+            */
+
+           fs.stat(file, function(err,data) {
+               if(elm.size == data.size) {
+                   elm.done = true
+                   console.log("CHECKER")
+
+                   return cb()
+//                   return self.execChecker(elm,cb)
+               }
+               elm.size = data.size
+               return cb()
+           })
         }
         else {
-            self.glob[file] = fs.statSync(file)
-            self.glob[file].me = file
+            fs.stat(file, function(err,data) {
+                self.glob[file] = data
+                self.glob[file].me = file
+                return cb()
+            })
         }
+
         return cb()
     }
     self.initGlob = function() {
+        /*
         async.eachSeries(self.dir.glob, function(dir,cb) {
             glob(dir, {}, function(err,files) {
-                if(err) return
+                if(err) return cb()
                 _.each(files, function(value,key,list) {
+                    console.log(key)
                     if(!self.glob[key]) {
-                        self.processGlobFile(value,cb)
+                        return self.processGlobFile(value,cb)
                     }
                     else return cb()
                 })
+
+                return cb()
             })
         }, function(err,data) {
             if(err) {
                 winston.error('initGlob: '+elm.key+' error', { error : err })
             }
+            winston.info('ending loop 1')
         })
+        */
+
+       /*
+       _.each(self.dir.glob, function(dir,key,list) {
+           glob(dir, {}, function(err, files) {
+               async.eachSeries(files, function(file, _cb) {
+                   //console.log("file", file)
+                   return _cb()
+               }, function(err, data) {
+                   winston.info('ending loop')
+               })
+           })
+       })
+       */
+
+      for(var v in self.dir.glob){
+          var dir = self.dir.glob[v]
+          glob(dir,{},function(err,files) {
+              async.forEachSeries(files,function(file,_cb) {
+                  /*
+                  process.nextTick(function() {
+                      console.log("file")
+                    return _cb()
+                  })
+                  */
+                 async.setImmediate(function() {
+                     console.log("file", file)
+                     if(!self.glob[file]) {
+                         return self.processGlobFile(file,_cb);
+                     }
+                     else {
+                        return _cb()
+                     }
+                 })
+//                  process.nextTick(_cb)
+              })
+          })
+      }
     }
     self.initInterval = function() {
         setInterval(function() {
